@@ -691,5 +691,23 @@ export const getDashboardSummary = async (req, res) => {
   }
 };
 
+export const getTopRatedMangas = async (req, res) => {
+  try {
+    // Aggregate average rating per manga
+    const mangas = await Manga.aggregate([
+      {
+        $addFields: {
+          avgRating: { $avg: "$ratings.rating" }
+        }
+      },
+      { $sort: { avgRating: -1 } },
+      { $limit: 10 }
+    ]);
 
+    res.json(mangas);
+  } catch (error) {
+    console.error('Failed to get top rated mangas:', error);
+    res.status(500).json({ error: 'Failed to get top rated mangas' });
+  }
+};
 
