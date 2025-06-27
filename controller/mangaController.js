@@ -29,24 +29,47 @@ export const addManga = async (req, res) => {
     const { title, description, isRentable, author, genre } = req.body;
     const coverImage = req.file?.filename;
 
-    const genreArray = Array.isArray(genre) ? genre : genre?.split(',').map(g => g.trim());
+    // ✅ Convert genre string to array if needed
+    const genreArray = Array.isArray(genre)
+      ? genre
+      : genre?.split(',').map((g) => g.trim());
 
+    // ✅ Handle rentalDetails
+    let rentalDetails = null;
+
+    if (isRentable === 'true' && req.body.rentalDetails) {
+      const parsedDetails = typeof req.body.rentalDetails === 'string'
+        ? JSON.parse(req.body.rentalDetails)
+        : req.body.rentalDetails;
+
+      rentalDetails = {
+        price: parsedDetails.price,
+        duration: {
+          value: parsedDetails.duration.value,
+          unit: parsedDetails.duration.unit
+        }
+      };
+    }
+
+    // ✅ Save rentalDetails to DB
     const manga = new Manga({
       title,
       description,
       coverImage,
-      isRentable,
+      isRentable: isRentable === 'true',
       author,
-      genre: genreArray
+      genre: genreArray,
+      rentalDetails // ✅ This was missing before
     });
 
     await manga.save();
-    res.status(201).json({ message: 'Manga created', manga });
+    res.status(201).json({ message: "Manga created", manga });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to create manga' });
+    res.status(500).json({ error: "Failed to create manga" });
   }
 };
+
 
 export const addChapter = async (req, res) => {
   try {
@@ -628,5 +651,45 @@ export const removeBookmark = async (req, res) => {
     res.status(500).json({ message: 'Server error removing bookmark' });
   }
 };
+
+export const getDashboardSummary = async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const totalManga = await Manga.countDocuments();
+    const totalRents = await Rental.countDocuments();
+
+    const topRented = await Rental.aggregate([
+      {
+        $group: {
+          _id: "$mangaId",
+          rented: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "mangas",
+          localField: "_id",
+          foreignField: "_id",
+          as: "manga",
+        },
+      },
+      { $unwind: "$manga" },
+      {
+        $project: {
+          name: "$manga.title",
+          rented: 1,
+        },
+      },
+      { $sort: { rented: -1 } },
+      { $limit: 5 },
+    ]);
+
+    res.status(200).json({ totalUsers, totalManga, totalRents, topRented });
+  } catch (error) {
+    console.error("Dashboard Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 
 

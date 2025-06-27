@@ -1,7 +1,7 @@
 import express from 'express';
 import { addManga, addChapter, getAllManga, getMangaById,addComment,removeComment,
     addBookmark,
-    getBookmarksByUser,deleteManga, updateManga,rentManga  ,getAllRentals,deleteCommentFromOverall,addRating,removeBookmark,removeRating,getUserRentals,deleteRental} from '../controller/mangaController.js';
+    getBookmarksByUser,deleteManga, updateManga,rentManga  ,getAllRentals,deleteCommentFromOverall,addRating,removeBookmark,removeRating,getUserRentals,deleteRental,getDashboardSummary} from '../controller/mangaController.js';
 import multer from 'multer';
 import { coverStorage, chapterZipStorage} from '../middleware/upload.js';
 import { verifyToken} from '../middleware/verifyToken.js';
@@ -16,6 +16,7 @@ router.post('/:mangaId/chapters', uploadZip.single('zipFile'), addChapter);
 router.get('/', getAllManga);
 
 // Put all specific GET routes before param routes:
+router.get("/summary", getDashboardSummary);
 router.get('/rentals', getAllRentals);      // <-- moved here
 router.get('/bookmarks/:userId', getBookmarksByUser);
 router.get('/user/:userId', getUserRentals);
@@ -32,6 +33,7 @@ router.delete('/:mangaId/overall-comments/:commentId', deleteCommentFromOverall)
 router.delete('/:mangaId/bookmark', removeBookmark);
 router.post('/rate/:mangaId', addRating);
 router.delete('/review/:mangaId/:reviewId', removeRating);
+
 
 
 
