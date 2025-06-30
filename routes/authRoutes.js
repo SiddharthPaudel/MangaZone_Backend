@@ -14,6 +14,8 @@ router.post("/login", loginController);
 router.put('/update/:userId', updateUser); 
 router.get("/", getAllUsers);
 router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
+// Inside authRoutes.js or similar
+router.post("/reset-password/:token", resetPassword);
+
 
 export default router;
