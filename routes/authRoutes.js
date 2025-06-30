@@ -1,6 +1,6 @@
 // routes/authRoutes.js
 import express from "express";
-import { signupController, loginController ,updateUser,getAllUsers } from "../controller/authController.js";
+import { signupController, loginController ,updateUser,getAllUsers,forgotPassword,resetPassword } from "../controller/authController.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 
 const router = express.Router();
@@ -13,5 +13,7 @@ router.post("/login", loginController);
 
 router.put('/update/:userId', updateUser); 
 router.get("/", getAllUsers);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 export default router;

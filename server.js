@@ -7,11 +7,12 @@ import { fileURLToPath } from "url";
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
-import mangaRoutes from "./routes/mangaRoutes.js"; // ✅ Add your Manga routes
+import mangaRoutes from "./routes/mangaRoutes.js";
 
 // Config
 import connectDB from "./config/db.js";
 
+// Load environment variables
 dotenv.config();
 
 const app = express();
@@ -30,8 +31,10 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/manga", mangaRoutes); // ✅ Mount manga routes
+app.use("/api/manga", mangaRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+app.listen(PORT, () =>
+  console.log(`🚀 Server running on http://localhost:${PORT}`)
+);

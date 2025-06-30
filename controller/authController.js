@@ -2,7 +2,8 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js'; // Correct way to import the User model
-
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 const SECRET_KEY = "8261ba19898d0dcdfe6c0c411df74b587b2e54538f5f451633b71e39f957cf01";
 
 // Signup Controller
@@ -158,4 +159,70 @@ export const getAllUsers = async (req, res) => {
     console.error('Error fetching users:', error);
     res.status(500).json({ message: 'Failed to fetch users' });
   }
+};
+
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const resetLink = `${process.env.CLIENT_URL}/reset-password/${token}`;
+
+    user.resetToken = token;
+    user.resetTokenExpiry = Date.now() + 3600000;
+    await user.save();
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: user.email,
+        subject: "Password Reset",
+        html: `<p>Click <a href="${resetLink}">here</a> to reset your password</p>`,
+      });
+      return res.json({ message: "Password reset link sent" });
+    } catch (emailErr) {
+      console.error("Email send error:", emailErr);
+      return res.status(500).json({ message: "Failed to send email", error: emailErr.message });
+    }
+  } catch (err) {
+    console.error("Forgot Password Error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+
+// POST /api/auth/reset-password
+export const resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res.status(400).json({ message: "Token and new password are required" });
+  }
+
+  const user = await User.findOne({
+    resetToken: token,
+    resetTokenExpiry: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return res.status(400).json({ message: "Invalid or expired token" });
+  }
+
+  user.password = newPassword;
+  user.resetToken = undefined;
+  user.resetTokenExpiry = undefined;
+  await user.save();
+
+  res.status(200).json({ message: "Password has been reset successfully" });
 };
