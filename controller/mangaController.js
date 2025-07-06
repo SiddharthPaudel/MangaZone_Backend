@@ -368,93 +368,6 @@ export const addBookmark = async (req, res) => {
 
 
 
-// ✅ Add to the top
-
-// export const rentManga = async (req, res) => {
-//   try {
-//     const { mangaId } = req.params;
-//     const {
-//       userId,
-//       durationValue,
-//       durationUnit,
-//       paymentMethod,
-//       phoneNumber,
-//       location
-//     } = req.body;
-
-//     // ✅ Validation
-//     if (!userId || !paymentMethod || !phoneNumber) {
-//       return res.status(400).json({ error: 'User ID, payment method, and phone number are required.' });
-//     }
-
-//     if (!/^\d{10}$/.test(phoneNumber)) {
-//       return res.status(400).json({ error: 'Phone number must be exactly 10 digits.' });
-//     }
-
-//     const manga = await Manga.findById(mangaId);
-//     if (!manga || !manga.isRentable) {
-//       return res.status(404).json({ error: 'Manga not found or not rentable.' });
-//     }
-
-//     const rentedAt = new Date();
-//     const expiresAt = new Date(rentedAt);
-
-//     if (durationUnit === 'days') {
-//       expiresAt.setDate(rentedAt.getDate() + parseInt(durationValue));
-//     } else if (durationUnit === 'hours') {
-//       expiresAt.setHours(rentedAt.getHours() + parseInt(durationValue));
-//     } else {
-//       return res.status(400).json({ error: 'Invalid duration unit. Use "days" or "hours".' });
-//     }
-
-//     // ✅ Calculate total price
-//     const basePrice = manga.rentalDetails?.price || 0;
-//     let totalPrice =
-//       durationUnit === 'days'
-//         ? basePrice * parseInt(durationValue)
-//         : (basePrice / 24) * parseInt(durationValue);
-
-//     totalPrice = Math.round(totalPrice * 100) / 100;
-
-//     // ✅ Save rental record
-//     const rental = new Rental({
-//       userId,
-//       mangaId,
-//       rentedAt,
-//       expiresAt,
-//       price: totalPrice,
-//       paymentMethod,
-//       phoneNumber,
-//       location
-//     });
-
-//     await rental.save();
-
-//     // ✅ Add manga to user's rentedManga array (if you store it there)
-//     await User.findByIdAndUpdate(userId, {
-//       $addToSet: { rentedManga: new mongoose.Types.ObjectId(mangaId) }
-//     });
-
-//     // ✅ ✅ Push to manga.rentedBy list
-//     await Manga.findByIdAndUpdate(mangaId, {
-//       $addToSet: {
-//         rentedBy: {
-//           userId: new mongoose.Types.ObjectId(userId),
-//           rentedAt,
-//           expiresAt
-//         }
-//       }
-//     });
-
-//     res.status(201).json({ message: 'Manga rented successfully', rental });
-
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: 'Failed to rent manga' });
-//   }
-// };
-
-
 export const rentManga = async (req, res) => {
   try {
     const { mangaId } = req.params;
@@ -527,26 +440,35 @@ export const rentManga = async (req, res) => {
     }
 
     // ✅ Other payment methods - save directly
-    const rental = new Rental({
-      userId,
-      mangaId,
+   if (['Cash', 'Khalti', 'Card'].includes(paymentMethod)) {
+      const rental = new Rental({
+        userId,
+        mangaId,
+        rentedAt,
+        expiresAt,
+        price: totalPrice,
+        paymentMethod,
+        phoneNumber,
+        location
+      });
+
+      await rental.save();
+      await User.findByIdAndUpdate(userId, { $addToSet: { rentedManga: mangaId } });
+
+await Manga.findByIdAndUpdate(mangaId, {
+  $addToSet: {
+    rentedBy: {
+      userId: new mongoose.Types.ObjectId(userId),
       rentedAt,
-      expiresAt,
-      price: totalPrice,
-      paymentMethod,
-      phoneNumber,
-      location
-    });
+      expiresAt
+    }
+  }
+});
 
-    await rental.save();
-    await User.findByIdAndUpdate(userId, { $addToSet: { rentedManga: mangaId } });
-    await Manga.findByIdAndUpdate(mangaId, {
-      $addToSet: {
-        rentedBy: { userId, rentedAt, expiresAt }
-      }
-    });
+      return res.status(201).json({ message: 'Manga rented successfully', rental });
+    }
 
-    res.status(201).json({ message: 'Manga rented successfully', rental });
+    return res.status(400).json({ error: 'Invalid payment method' });
 
   } catch (err) {
     console.error(err);
@@ -555,6 +477,126 @@ export const rentManga = async (req, res) => {
 };
 
 
+
+// export const rentManga = async (req, res) => {
+//   try {
+//     const { mangaId } = req.params;
+//     const {
+//       userId,
+//       durationValue,
+//       durationUnit,
+//       paymentMethod,
+//       phoneNumber,
+//       location
+//     } = req.body;
+
+//     if (!userId || !paymentMethod || !phoneNumber) {
+//       return res.status(400).json({ error: 'User ID, payment method, and phone number are required.' });
+//     }
+
+//     if (!/^\d{10}$/.test(phoneNumber)) {
+//       return res.status(400).json({ error: 'Phone number must be exactly 10 digits.' });
+//     }
+
+//     const manga = await Manga.findById(mangaId);
+//     if (!manga || !manga.isRentable) {
+//       return res.status(404).json({ error: 'Manga not found or not rentable.' });
+//     }
+
+//     const rentedAt = new Date();
+//     const expiresAt = new Date(rentedAt);
+//     if (durationUnit === 'days') {
+//       expiresAt.setDate(rentedAt.getDate() + parseInt(durationValue));
+//     } else if (durationUnit === 'hours') {
+//       expiresAt.setHours(rentedAt.getHours() + parseInt(durationValue));
+//     } else {
+//       return res.status(400).json({ error: 'Invalid duration unit.' });
+//     }
+
+//     const basePrice = manga.rentalDetails?.price || 0;
+//     let totalPrice =
+//       durationUnit === 'days'
+//         ? basePrice * parseInt(durationValue)
+//         : (basePrice / 24) * parseInt(durationValue);
+//     totalPrice = Math.round(totalPrice * 100) / 100;
+
+//     // eSewa payment handling
+//     if (paymentMethod === 'Esewa') {
+//       const transaction_uuid = new mongoose.Types.ObjectId().toString();
+//       const product_code = process.env.ESEWA_MERCHANT_CODE || 'EPAYTEST';
+//       const secretKey = process.env.ESEWA_SECRET_KEY;
+
+//       // Prepare extra data to send (optional)
+//       const extraData = {
+//         transaction_uuid,
+//         total_amount: totalPrice,
+//         product_code,
+//         status: 'INITIATED',
+//       };
+//       const encodedData = encodeURIComponent(JSON.stringify(extraData));
+
+//       const success_url = `${process.env.BACKEND_URL}/api/payment/esewa-success`
+//         + `?userId=${userId}`
+//         + `&mangaId=${mangaId}`
+//         + `&rentedAt=${rentedAt.toISOString()}`
+//         + `&expiresAt=${expiresAt.toISOString()}`
+//         + `&price=${totalPrice}`
+//         + `&phoneNumber=${phoneNumber}`
+//         + `&location=${encodeURIComponent(location)}`
+//         + `&data=${encodedData}`;
+
+//       const failure_url = `${process.env.BACKEND_URL}/api/payment/esewa-failure`;
+
+//       const values = {
+//         amount: totalPrice.toString(),
+//         tax_amount: '0',
+//         product_service_charge: '0',
+//         product_delivery_charge: '0',
+//         transaction_uuid,
+//         product_code,
+//         success_url,
+//         failure_url,
+//       };
+
+//       const signedFields = ['total_amount', 'transaction_uuid', 'product_code'];
+//       values.signed_field_names = signedFields.join(',');
+//       values.signature = getSignature(secretKey, signedFields, values);
+
+//       return res.status(200).json({
+//         esewa: true,
+//         action: 'https://rc-epay.esewa.com.np/api/epay/main/v2/form',
+//         values,
+//       });
+//     }
+
+//     // For other payment methods: Save rental immediately
+//     const rental = new Rental({
+//       userId,
+//       mangaId,
+//       rentedAt,
+//       expiresAt,
+//       price: totalPrice,
+//       paymentMethod,
+//       phoneNumber,
+//       location
+//     });
+
+//     await rental.save();
+
+//     await User.findByIdAndUpdate(userId, { $addToSet: { rentedManga: mangaId } });
+//     await Manga.findByIdAndUpdate(mangaId, {
+//       $addToSet: {
+//         rentedBy: { userId, rentedAt, expiresAt }
+//       }
+//     });
+
+//     res.status(201).json({ message: 'Manga rented successfully', rental });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: 'Failed to rent manga' });
+//   }
+// };
 
 
 export const getUserRentals = async (req, res) => {
